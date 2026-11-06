@@ -13,7 +13,29 @@
   
 ## 宿題
 
-- 取り組んだレベル：基礎 / 実装 / 発展
+- 取り組んだレベル：基礎
+
 - やったこと：
+  - app/agent.pyのINSTRUCTIONSから、次の指示を一時的に削除した。
+    - 用語や講座に固有のことを答える前に、必ずsearch_glossaryで用語集を確認する。
+  - 変更前後で、次の同じ質問を--trace付きで実行し、ツールの呼出しと回答を比較した。
+    - uv run python -m app.agent --trace "LoRAとQLoRAの違いは？"
+
 - 結果：
+  - 変更前は、search_glossaryが2回呼び出され、引数にはそれぞれ次の値が渡された。
+
+    > [tool call] search_glossary({'query': 'LoRA'})
+    > [tool call] search_glossary({'query': 'QLoRA'})
+
+  - LLMの呼出し回数はrequests=2、ツールの呼出し回数はtool_calls=2であった。回答では、LoRAはベースモデルの重みを固定して低ランク行列のみを学習する手法、QLoRAはベースモデルの重みを4ビットなどに量子化した上でLoRAによる学習を行う手法であると説明された。
+  - 変更後も、search_glossaryが次のとおり2回呼び出された。
+
+    > [tool call] search_glossary({'query': 'LoRA'})
+    > [tool call] search_glossary({'query': 'QLoRA'})
+
+  - 変更後の実行でも、LLMの呼出し回数はrequests=2、ツールの呼出し回数はtool_calls=2であり、呼び出されたツール、回数、引数に変化はなかった。回答内容についても、LoRAとQLoRAの違いをベースモデルの量子化の有無として説明しており、大きな変化はなかった。
+  - 変更後に2回実行したが、いずれも同じ2つの検索が行われた。出力される表現やトークン数には若干の違いがあり、1回目はoutput_tokens=215、2回目はoutput_tokens=193であったが、回答の要点は同じであった。
+
 - 気づき・疑問：
+  - INSTRUCTIONSから用語集の検索を必須とする指示を削除しても、今回の質問ではsearch_glossaryが変更前と同様に呼び出された。これは、search_glossaryのdocstringに、AIエンジニアリングの用語について答える前に使用することが記載されており、モデルがその説明を基にツールの使用が必要であると判断したためと考えられる。
+  - この結果から、エージェントのツール選択はINSTRUCTIONSだけでなく、各ツールのdocstringにも影響されることが分かった。また、実行ごとに回答の表現やトークン数は多少変化するものの、使用するツールや回答の要点はおおむね安定していた。今後、ツールの使われ方を明確に制御するには、INSTRUCTIONSとdocstringの役割を整理し、両者の指示が矛盾しないように記述する必要がある。
